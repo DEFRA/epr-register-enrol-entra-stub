@@ -123,6 +123,49 @@ export const config = convict({
       default: isDevelopment
     }
   },
+  stub: {
+    externalUrl: {
+      doc: 'Base URL browsers use to reach this stub. Also the OIDC issuer (discovery `issuer` and token `iss`) and the base of the authorize and end-session endpoints.',
+      format: 'url',
+      default: 'http://localhost:3010',
+      env: 'STUB_EXTERNAL_URL'
+    },
+    internalUrl: {
+      doc: 'Base URL relying parties use for server-to-server calls (token endpoint and JWKS). The same as STUB_EXTERNAL_URL on CDP; differs only where browser and server see different hostnames (e.g. Docker Compose).',
+      format: 'url',
+      default: 'http://localhost:3010',
+      env: 'STUB_INTERNAL_URL'
+    },
+    signingKey: {
+      doc: 'Optional RSA private key (PKCS#8 PEM; literal "\\n" sequences are accepted) used to sign tokens. When unset a fresh key pair is generated at boot, so tokens issued before a restart stop verifying.',
+      format: String,
+      nullable: true,
+      default: null,
+      env: 'STUB_SIGNING_KEY',
+      sensitive: true
+    }
+  },
+  caseManagement: {
+    clientId: {
+      doc: 'Client id of the EPR Register Case Management frontend (its ENTRA_CLIENT_ID).',
+      format: String,
+      default: 'epr-register-enrol-management-fe',
+      env: 'CM_CLIENT_ID'
+    },
+    clientSecret: {
+      doc: 'Client secret of the EPR Register Case Management frontend (its ENTRA_CLIENT_SECRET). The default is a non-sensitive test value.',
+      format: String,
+      default: 'case-management-stub-secret',
+      env: 'CM_CLIENT_SECRET',
+      sensitive: true
+    },
+    callbackUrl: {
+      doc: 'Base URL of the EPR Register Case Management frontend (its AUTH_CALLBACK_BASE_URL). The registered redirect and post-logout URIs are built from it.',
+      format: 'url',
+      default: 'http://localhost:3000',
+      env: 'CALLBACK_CM_URL'
+    }
+  },
   tracing: {
     header: {
       doc: 'Which header to track',

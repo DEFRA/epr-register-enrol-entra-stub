@@ -1,57 +1,38 @@
-const stubExternalUrl = process.env.STUB_EXTERNAL_URL || 'http://localhost:3010'
-const stubInternalUrl = process.env.STUB_INTERNAL_URL || 'http://localhost:3010'
+import { config } from '../../config/config.js'
+import { trimTrailingSlash } from './urls.js'
+
+// Browser-facing endpoints hang off the external URL, which is also the
+// issuer; server-to-server endpoints hang off the internal URL.
+const externalUrl = trimTrailingSlash(config.get('stub.externalUrl'))
+const internalUrl = trimTrailingSlash(config.get('stub.internalUrl'))
+
+export const issuer = externalUrl
 
 export const oidcConfig = {
-  token_endpoint: `${stubInternalUrl}/token`,
-  token_endpoint_auth_methods_supported: [
-    'client_secret_post',
-    'private_key_jwt',
-    'client_secret_basic'
-  ],
-  jwks_uri: `${stubInternalUrl}/jwks`,
-  response_modes_supported: ['query', 'fragment', 'form_post'],
-  subject_types_supported: ['pairwise'],
+  issuer,
+  authorization_endpoint: `${externalUrl}/authorize`,
+  token_endpoint: `${internalUrl}/token`,
+  jwks_uri: `${internalUrl}/jwks`,
+  end_session_endpoint: `${externalUrl}/logout`,
+  response_types_supported: ['code'],
+  response_modes_supported: ['query'],
+  grant_types_supported: ['authorization_code'],
+  subject_types_supported: ['public'],
   id_token_signing_alg_values_supported: ['RS256'],
-  response_types_supported: [
-    'code',
-    'id_token',
-    'code id_token',
-    'id_token token'
-  ],
-  scopes_supported: ['openid', 'profile', 'email', 'offline_access'],
-  issuer: `https://login.microsoftonline.com/tenantId/v2.0`,
-  request_uri_parameter_supported: false,
-  userinfo_endpoint: 'https://graph.microsoft.com/oidc/userinfo',
-  authorization_endpoint: `${stubExternalUrl}/authorize`,
-  device_authorization_endpoint: `${stubExternalUrl}/devicecode`,
-  http_logout_supported: true,
-  frontchannel_logout_supported: true,
-  end_session_endpoint: `${stubExternalUrl}/clientId/logout`,
+  scopes_supported: ['openid', 'profile', 'email'],
+  token_endpoint_auth_methods_supported: ['client_secret_post'],
+  code_challenge_methods_supported: ['S256'],
   claims_supported: [
-    'sub',
     'iss',
-    'cloud_instance_name',
-    'cloud_instance_host_name',
-    'cloud_graph_host_name',
-    'msgraph_host',
+    'sub',
     'aud',
     'exp',
     'iat',
-    'auth_time',
-    'acr',
     'nonce',
-    'preferred_username',
+    'oid',
     'name',
-    'tid',
-    'ver',
-    'at_hash',
-    'c_hash',
-    'email'
-  ],
-  kerberos_endpoint: `${stubExternalUrl}/tenantId/kerberos`,
-  tenant_region_scope: 'EU',
-  cloud_instance_name: 'microsoftonline.com',
-  cloud_graph_host_name: 'graph.windows.net',
-  msgraph_host: 'graph.microsoft.com',
-  rbac_url: 'https://pas.windows.net'
+    'preferred_username',
+    'email',
+    'roles'
+  ]
 }

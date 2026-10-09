@@ -15,15 +15,11 @@ import { requestLogger } from './common/helpers/logging/request-logger.js'
 import { health } from './routes/health.js'
 import { jwks } from './routes/jwks.js'
 import { token } from './routes/token.js'
-import { sign } from './routes/sign.js'
 import { favicon } from './routes/favicon.js'
 import { files } from './routes/files.js'
-import {
-  authorizeGet,
-  authorizePost,
-  logoutGet,
-  oidcConfigGet
-} from './routes/authorize.js'
+import { authorizeGet, authorizePost } from './routes/authorize.js'
+import { logoutGet } from './routes/logout.js'
+import { oidcConfigGet } from './routes/openid-configuration.js'
 
 export async function createServer() {
   setupProxy()
@@ -77,7 +73,6 @@ export async function createServer() {
     jwks,
     authorizeGet,
     authorizePost,
-    sign,
     token,
     oidcConfigGet,
     logoutGet

@@ -1,25 +1,26 @@
 import { SignJWT } from 'jose'
-import { randomUUID } from 'node:crypto'
 import { privateKey, publicJWK } from './keys.js'
+import { issuer } from './oidc-config.js'
 
-export const createToken = async ({ user, clientId, scope }) => {
-  return await new SignJWT({
-    scope,
+export const TOKEN_LIFETIME_SECONDS = 3600
+
+/**
+ * Sign a token for `user`, addressed to `clientId`. Entra ID omits the
+ * `roles` claim entirely for a user with no app role, so this does too.
+ */
+export const createToken = ({ user, clientId, claims = {} }) =>
+  new SignJWT({
+    ...claims,
     sub: user.id,
     oid: user.id,
     name: user.name,
     preferred_username: user.username,
-    roles: user.roles,
-    nonce: randomUUID()
+    email: user.username,
+    ...(user.roles.length > 0 && { roles: user.roles })
   })
-    .setProtectedHeader({
-      alg: 'RS256',
-      typ: 'JWT',
-      kid: publicJWK.kid
-    })
+    .setProtectedHeader({ alg: 'RS256', typ: 'JWT', kid: publicJWK.kid })
     .setIssuedAt()
-    .setIssuer('https://login.microsoftonline.com/tenantId/v2.0')
+    .setIssuer(issuer)
     .setAudience(clientId)
-    .setExpirationTime('1h')
+    .setExpirationTime(`${TOKEN_LIFETIME_SECONDS}s`)
     .sign(privateKey)
-}

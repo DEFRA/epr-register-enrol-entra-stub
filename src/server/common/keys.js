@@ -1,43 +1,34 @@
-import { importPKCS8 } from 'jose'
+import {
+  createPrivateKey,
+  createPublicKey,
+  generateKeyPairSync
+} from 'node:crypto'
+import { calculateJwkThumbprint, exportJWK } from 'jose'
+import { config } from '../../config/config.js'
 
-export const privateKey = await importPKCS8(
-  `-----BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDCfUYpIprdI9se
-4bkE5NjZznkiYt8BNSa89abLG42b/cJlmfwy7ObPK1z7Xo5AD7HqvVzm9Y6g+P0a
-taO2StuLCV7y2eTNTFDlGQHMJ17IiVwJCDUEVhBS2uaWn0+bPFjdxwbjXkM5jl3Z
-+QxJsXLW39p0JZXXblcNNDDqbkUvY897Q1+0ox6tU/dYSG+0FnSTvzEBmtNbTu5O
-LsNP1vpI6KwyivRjwqWLFvCV1eXAIg7WjrWC4c8/hMp4bW+PPdrhAyV/fYY1mOIJ
-smKRAnhlF9uT+InYDGKWEJ0zDEEIumkczkTK1BEFlaAqxJjKjhOtXSuPj0Zt4+23
-JdyH9JBRAgMBAAECggEAFAz/QTloltjd+8qQnREMzDOtqF5iGElHA58dwX3HNShN
-tNTRu9xRlVUmomGmr7MOiCFapRL2z+Crk2fbh20jQivGpqnRHVs7UcsotMfwTSNg
-Iiw+7wICb9BSin/FIL9xd/fPXXx32MS1J0Y2Ppi1OrLcXjILxyiAgAN78YdJya9F
-rbRWq9vA0sZ7RD8ddi+92/3mLSCEowTsMXGHBAsIhvxBOP0LCsQpY9nzAGr5Wow4
-00DXTc7/nBM3ihTQa5iILRfVDVaZmPiHdtp2NCu6qhyvh6nW25FtRHJYVDkMJmyi
-uRYqRTqMIj1OzF8qKuWO/GoZ7+EWHGD0MrfyI1xHOQKBgQD94aV76WKgCCzwP9jn
-UrSn0McbPRrJOr+XYpUOtOWWl2o6+k3X/lI+5s7N1UvzL7S9Cn/3I0RgEQ4HF8G9
-6EpxsT0iH4/bImv75rp7lO7tGID1KOXOwW4+Ds8/g+yoUNNdngsQbgLb5KgO9V2i
-j7GCgzOTBj1vVmUQyGd54O/bdQKBgQDEHMBfuQyFv5Gb73tO92qgWKkURRvGK8q5
-IoNGx7BBO3BNNyrxGIjj+sBnA9TYOu04WvOJb7AFrPIIOvnqqQSB9imLEbzefPoS
-n4047zv/UpnBXjvNWsUjHL5ttW/LW9ICu/omT0J7tK4Z2Z3OKNYrDb35/SC8YYxK
-usq0cbEx7QKBgD4PLnh/sFAWL4X61XaWTPrImiMaaLXP2o2S14Tky0pocNtB3E10
-KX6exOajwRENFE0xh95NjKU/BgLN19ooMipgfOUeeffDDkphOCyFV3I1jzBecu57
-cgtRa2/HO85ZE5HK1EGL4r8Fwd8GM4FNRsL0d2L1H4dbwxC7LDAqv/cRAoGAV/MI
-9yTXD9hk5cjVxQlCgVyhnxyLIymahcKLmx+M1QRiDc7y7CLzqUJYLRrTxpFOt5pa
-Y8V57GGuPbCtSea4xcvuv5aZ3DGyOM3jGKh5gLy7hbPMIAFYLbIDWNIoq8um+GDz
-A2FCUJYsCh3FHqLDwZUtIMK7fqBEuXLh22CtddUCgYEAjumeSbRAVqSsrdiygKs/
-huaqznMs612sP/p7ea7+cnvynSCr9PQO0QS3JhQek+kX88QzI2mzjtOSPAZyxbIE
-qd053xjhH96GwRHA4FOScWnpOnL81nP7oeVhigVNDJd/RGDTpQ3k1JtA8n8v5/fZ
-ccnvRlug3QCaR9r0K6NpIGA=
------END PRIVATE KEY-----`,
-  'RS256'
-)
+/**
+ * Load the token signing key from a PKCS#8 PEM, or generate a fresh RSA key
+ * pair when none is given. The public half is published on /jwks with a
+ * thumbprint kid, so a rotated key gets a new kid.
+ */
+export async function loadSigningKeys(pem) {
+  const privateKey = pem
+    ? createPrivateKey(pem.replaceAll(String.raw`\n`, '\n'))
+    : generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey
 
-export const publicJWK = {
-  kid: 'key-1',
-  kty: 'RSA',
-  e: 'AQAB',
-  use: 'sig',
-  alg: 'RS256',
-  key_ops: ['verify'],
-  n: 'wn1GKSKa3SPbHuG5BOTY2c55ImLfATUmvPWmyxuNm_3CZZn8Muzmzytc-16OQA-x6r1c5vWOoPj9GrWjtkrbiwle8tnkzUxQ5RkBzCdeyIlcCQg1BFYQUtrmlp9PmzxY3ccG415DOY5d2fkMSbFy1t_adCWV125XDTQw6m5FL2PPe0NftKMerVP3WEhvtBZ0k78xAZrTW07uTi7DT9b6SOisMor0Y8KlixbwldXlwCIO1o61guHPP4TKeG1vjz3a4QMlf32GNZjiCbJikQJ4ZRfbk_iJ2AxilhCdMwxBCLppHM5EytQRBZWgKsSYyo4TrV0rj49GbePttyXch_SQUQ'
+  if (privateKey.asymmetricKeyType !== 'rsa') {
+    throw new Error('STUB_SIGNING_KEY must be an RSA private key')
+  }
+
+  const jwk = await exportJWK(createPublicKey(privateKey))
+  const kid = await calculateJwkThumbprint(jwk)
+
+  return {
+    privateKey,
+    publicJWK: { ...jwk, kid, use: 'sig', alg: 'RS256' }
+  }
 }
+
+export const { privateKey, publicJWK } = await loadSigningKeys(
+  config.get('stub.signingKey')
+)

@@ -1,16 +1,18 @@
 import Boom from '@hapi/boom'
 import { randomUUID } from 'node:crypto'
 import { authCodes } from '../common/auth-codes.js'
-import { clients } from '../common/clients.js'
-import { users } from '../common/users.js'
-import { statusCodes } from '../common/constants/status-codes.js'
-import { oidcConfig } from '../common/oidc-config.js'
+import { findClient } from '../common/clients.js'
+import { findUser } from '../common/users.js'
 
-const sessions = {}
+// Browser sessions (single sign-on between /authorize calls). Held in memory:
+// the stub runs as a single instance and a restart simply logs everyone out.
+export const sessions = {}
+
+// A base64url SHA-256 digest is always 43 characters (RFC 7636 section 4.2).
+const S256_CHALLENGE = /^[\w-]{43}$/
 
 const assertIsValidQuery = (query) => {
-  const client = clients.find((c) => c.id === query.client_id)
-
+  const client = findClient(query.client_id)
   if (!client) {
     throw Boom.badRequest('Invalid client_id')
   }
@@ -19,11 +21,14 @@ const assertIsValidQuery = (query) => {
     throw Boom.badRequest('Invalid redirect_uri')
   }
 
+  if (query.response_type !== 'code') {
+    throw Boom.badRequest('Unsupported response_type')
+  }
+
   if (typeof query.scope !== 'string') {
     throw Boom.badRequest('Invalid scope parameter type')
   }
 
-  console.log('Scopes: ' + query.scope)
   for (const scope of query.scope.split(' ')) {
     if (!client.scopes.includes(scope)) {
       throw Boom.badRequest(`Invalid scope: ${scope}`)
@@ -33,7 +38,40 @@ const assertIsValidQuery = (query) => {
   if (!query.state) {
     throw Boom.badRequest('Missing state parameter')
   }
+
+  if (query.code_challenge !== undefined) {
+    if (query.code_challenge_method !== 'S256') {
+      throw Boom.badRequest('Unsupported code_challenge_method')
+    }
+    if (!S256_CHALLENGE.test(query.code_challenge)) {
+      throw Boom.badRequest('Invalid code_challenge')
+    }
+  }
 }
+
+const redirectWithCode = (h, query, user) => {
+  const code = randomUUID()
+  authCodes[code] = {
+    clientId: query.client_id,
+    redirectUri: query.redirect_uri,
+    scope: query.scope,
+    nonce: query.nonce,
+    codeChallenge: query.code_challenge,
+    user
+  }
+
+  const location = new URL(query.redirect_uri)
+  location.searchParams.set('code', code)
+  location.searchParams.set('state', query.state)
+  return h.redirect(location.href)
+}
+
+const loginView = (h, validationErrors) =>
+  h.view('views/authorize', {
+    pageTitle: 'Login',
+    heading: 'Login',
+    validationErrors
+  })
 
 export const authorizeGet = {
   method: /** @type {const} */ ('GET'),
@@ -41,67 +79,12 @@ export const authorizeGet = {
   handler(request, h) {
     assertIsValidQuery(request.query)
 
-    if (request.query.response_type !== 'code') {
-      throw Boom.badRequest('Unsupported response_type')
-    }
-
     const session = sessions[request.state.sessionId]
-
     if (session) {
-      const code = randomUUID()
-
-      authCodes[code] = {
-        clientId: request.query.client_id,
-        scope: request.query.scope,
-        user: session.user
-      }
-
-      return h.redirect(
-        `${request.query.redirect_uri}?code=${code}&state=${request.query.state}`
-      )
+      return redirectWithCode(h, request.query, session.user)
     }
 
-    return h.view('views/authorize', {
-      pageTitle: 'Login',
-      heading: 'Login'
-    })
-  }
-}
-
-export const logoutGet = {
-  method: /** @type {const} */ ('GET'),
-  path: '/{clientId}/logout',
-  handler(request, h) {
-    const { params } = request
-    const { clientId } = params
-
-    const client = clients.find((c) => c.id === clientId)
-
-    if (!client) {
-      throw Boom.badRequest('Invalid client_id')
-    }
-
-    const validatedRedirectUri = client.postLogoutRedirectURIs.find(
-      (uri) => uri === request.query.post_logout_redirect_uri
-    )
-
-    if (!validatedRedirectUri) {
-      throw Boom.badRequest('Invalid post_logout_redirect_uri')
-    }
-
-    h.unstate('session', { path: '/' })
-    h.unstate('sessionId', { path: '/' })
-
-    return h.redirect(validatedRedirectUri)
-  }
-}
-
-export const oidcConfigGet = {
-  method: /** @type {const} */ ('GET'),
-  path: '/.well-known/openid-configuration',
-  handler(_request, h) {
-    console.log(oidcConfig)
-    return h.response(oidcConfig).code(statusCodes.ok)
+    return loginView(h)
   }
 }
 
@@ -111,42 +94,18 @@ export const authorizePost = {
   handler(request, h) {
     assertIsValidQuery(request.query)
 
-    const { username, password } = request.payload
-
-    console.log('Username: ' + username)
-
-    const user = users.find(
-      (u) => u.username === username && u.password === password
-    )
-
+    const { username, password } = request.payload ?? {}
+    const user = findUser(username, password)
     if (!user) {
-      return h.view('views/authorize', {
-        pageTitle: 'Login',
-        heading: 'Login',
-        validationErrors: [
-          {
-            text: 'Invalid email or password',
-            href: '#username'
-          }
-        ]
-      })
+      return loginView(h, [
+        { text: 'Invalid email or password', href: '#username' }
+      ])
     }
 
     const sessionId = randomUUID()
-    const code = randomUUID()
-
     sessions[sessionId] = { user }
+    h.state('sessionId', sessionId, { path: '/' })
 
-    authCodes[code] = {
-      clientId: request.query.client_id,
-      scope: request.query.scope,
-      user
-    }
-
-    h.state('sessionId', sessionId)
-
-    return h.redirect(
-      `${request.query.redirect_uri}?code=${code}&state=${request.query.state}`
-    )
+    return redirectWithCode(h, request.query, user)
   }
 }

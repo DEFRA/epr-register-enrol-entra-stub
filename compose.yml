@@ -1,19 +1,15 @@
-version: '3.4'
 services:
-  epr-re-ex-entra-stub:
+  epr-register-enrol-entra-stub:
     build: ./
     ports:
       - '3010:3010'
-    env_file:
-      - 'compose/aws.env'
     environment:
       NODE_ENV: development
-      USE_SINGLE_INSTANCE_CACHE: true
+      STUB_EXTERNAL_URL: http://localhost:3010
+      STUB_INTERNAL_URL: http://epr-register-enrol-entra-stub:3010
+      CALLBACK_CM_URL: http://localhost:3000
     networks:
       - cdp-tenant
-
-volumes:
-  mongodb-data:
 
 networks:
   cdp-tenant:
