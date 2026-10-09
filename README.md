@@ -1,91 +1,144 @@
-# epr-re-ex-entra-stub
+# epr-register-enrol-entra-stub
 
-Entra ID stub service providing OAuth 2.0/OIDC endpoints for RE EX EPR testing and development.
+A Microsoft Entra ID OpenID Connect stub for the EPR Register Case Management
+frontend ([epr-register-enrol-management-fe](https://github.com/DEFRA/epr-register-enrol-management-fe)).
+It lets automated journey tests on CDP dev and perf-test sign in through
+management-fe's real Entra ID code path (authorization code + PKCE, signed
+`id_token`, RP-initiated logout) without real Entra ID accounts.
 
-Based on [fg-entra-stub-frontend](https://github.com/DEFRA/fg-entra-stub-frontend) with some changes to support RE EX EPR.
+It is a stub: it holds no real accounts and must never be used by a
+production service.
+
+Forked from [epr-re-ex-entra-stub](https://github.com/DEFRA/epr-re-ex-entra-stub),
+itself based on [fg-entra-stub-frontend](https://github.com/DEFRA/fg-entra-stub-frontend).
 
 - [Requirements](#requirements)
-- [Quick Start](#quick-start)
-- [Available Endpoints](available-endpoints)
+- [Quick start](#quick-start)
+- [Pointing management-fe at the stub](#pointing-management-fe-at-the-stub)
+- [Endpoints](#endpoints)
+- [Environment variables](#environment-variables)
+- [Users](#users)
+- [Signing keys](#signing-keys)
+- [Running as a single instance](#running-as-a-single-instance)
 - [Docker](#docker)
-- [License](#license)
+- [Licence](#licence)
 
 ## Requirements
 
-- nvm
-- [Node.js](http://nodejs.org/)
+- [Node.js](http://nodejs.org/) at the version in [.nvmrc](.nvmrc) (`nvm use`)
 
-## Quick Start
-
-Use supported version of Node:
-
-```
-nvm use
-```
-
-Install dependencies:
+## Quick start
 
 ```bash
 npm install
-```
-
-Run:
-
-```bash
 npm run dev
 ```
 
-## Clients and Users
+The stub listens on <http://localhost:3010>.
 
-Clients and users are defined in the codebase:
+## Pointing management-fe at the stub
 
-- [src/server/common/clients.js](src/server/common/clients.js)
-- [src/server/common/users.js](src/server/common/users.js)
+| management-fe setting    | Value                                                                 |
+| ------------------------ | --------------------------------------------------------------------- |
+| Discovery document       | `${STUB_EXTERNAL_URL}/.well-known/openid-configuration`               |
+| Issuer                   | `STUB_EXTERNAL_URL`, e.g. `http://localhost:3010` (no trailing slash) |
+| `ENTRA_CLIENT_ID`        | `CM_CLIENT_ID` (default `epr-register-enrol-management-fe`)           |
+| `ENTRA_CLIENT_SECRET`    | `CM_CLIENT_SECRET` (default `case-management-stub-secret`)            |
+| `AUTH_CALLBACK_BASE_URL` | `CALLBACK_CM_URL` (default `http://localhost:3000`)                   |
 
-## Public / Private Keys
+The stub registers exactly one client, with exact-match URIs:
 
-Keys used to sign and verify tokens are defined in the codebase:
-
-- [src/server/common/keys.js](src/server/common/keys.js)
+- redirect URI `${CALLBACK_CM_URL}/auth/regulator/callback`
+- post-logout redirect URI `${CALLBACK_CM_URL}/auth/logout`
 
 ## Endpoints
 
-- `GET/POST /authorize` - OAuth 2.0 authorization endpoint
-- `POST /token` - Token exchange endpoint
-- `GET /jwks` - JSON Web Key Set endpoint
-- `POST /sign` - Token signing endpoint
-- `GET /.well-known/openid-configuration` - OIDC discovery endpoint
+| Endpoint                                | Purpose                                                                                      |
+| --------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `GET /.well-known/openid-configuration` | Discovery document. Every URL in it is built from `STUB_EXTERNAL_URL` / `STUB_INTERNAL_URL`. |
+| `GET/POST /authorize`                   | Authorization endpoint and login form. `response_type=code` only; PKCE `S256` when sent.     |
+| `POST /token`                           | Exchanges a code for an `id_token` and `access_token`. Client secret in the form body only.  |
+| `GET /jwks`                             | Public signing key.                                                                          |
+| `GET /logout`                           | End-session endpoint. Takes `id_token_hint` (or `client_id`) and `post_logout_redirect_uri`. |
+| `GET /health`                           | CDP health check.                                                                            |
 
-## Environment variables (For Docker tests)
+`/authorize` and `/logout` are reached by the browser, so the discovery
+document advertises them on `STUB_EXTERNAL_URL`; `/token` and `/jwks` are
+called server to server and are advertised on `STUB_INTERNAL_URL`.
 
-```
-STUB_EXTERNAL_URL = URL that is used to redirect to the Stub UI
-STUB_INTERNAL_URL = URL that is used by calling service directly (via backend / HTTP calls)
-CALLBACK_BASE_URL = Base URL for the callback (i.e. the calling service)
-```
+`/token` returns:
 
-Override them as needed (e.g. Docker, or in environments).
+- `id_token`, signed RS256, with `iss`, `aud` (the client id), `sub`, `oid`,
+  `name`, `preferred_username`, `email`, `roles`, `iat`, `exp` and the `nonce`
+  sent to `/authorize`. As in Entra ID, `roles` is omitted for a user with no
+  app role.
+- `access_token` with the same identity claims plus `scope`.
 
-## Generate a token
+Errors from `/token` are RFC 6749 JSON (`{ "error": "invalid_grant", ... }`).
 
-```sh
-curl -H 'Content-Type: application/json' -d '{"clientId":"clientId","username":"ea@test.gov.uk"}' http://localhost:3010/sign
-```
+## Environment variables
+
+| Variable            | Default                            | Purpose                                                                                            |
+| ------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `STUB_EXTERNAL_URL` | `http://localhost:3010`            | Browser-facing base URL; also the issuer (`iss` and discovery `issuer`).                           |
+| `STUB_INTERNAL_URL` | `http://localhost:3010`            | Server-to-server base URL for `token_endpoint` and `jwks_uri`. Same as `STUB_EXTERNAL_URL` on CDP. |
+| `CM_CLIENT_ID`      | `epr-register-enrol-management-fe` | Case Management client id.                                                                         |
+| `CM_CLIENT_SECRET`  | `case-management-stub-secret`      | Case Management client secret (test value).                                                        |
+| `CALLBACK_CM_URL`   | `http://localhost:3000`            | Case Management base URL; the registered redirect and post-logout URIs hang off it.                |
+| `STUB_SIGNING_KEY`  | unset                              | Optional RSA PKCS#8 PEM to sign tokens with. Unset: a key pair is generated at boot.               |
+| `PORT`              | `3010`                             | Port to listen on.                                                                                 |
+
+The usual CDP template variables (`LOG_LEVEL`, `HTTP_PROXY`,
+`ENABLE_SECURE_CONTEXT`, ...) are documented in
+[src/config/config.js](src/config/config.js).
+
+## Users
+
+Every user's password is `pass`. Ids are stable, so `oid`/`sub` do not change
+between runs.
+
+| Email                          | Name           | Entra ID app role            | management-fe outcome    |
+| ------------------------------ | -------------- | ---------------------------- | ------------------------ |
+| `ea.regulator@test.gov.uk`     | EA Regulator   | `Waste.Regulator.Standard`   | Caseworker               |
+| `nrw.regulator@test.gov.uk`    | NRW Regulator  | `Waste.Regulator.Standard`   | Caseworker               |
+| `niea.regulator@test.gov.uk`   | NIEA Regulator | `Waste.Regulator.Standard`   | Caseworker               |
+| `sepa.regulator@test.gov.uk`   | SEPA Regulator | `Waste.Regulator.Standard`   | Caseworker               |
+| `support.readonly@test.gov.uk` | Support User   | `Waste.SupportUser.ReadOnly` | Read-only support user   |
+| `no.role@test.gov.uk`          | No Role User   | none                         | "You do not have access" |
+
+Users are defined in [src/server/common/users.js](src/server/common/users.js)
+and the client in [src/server/common/clients.js](src/server/common/clients.js).
+
+## Signing keys
+
+No private key is committed. Unless `STUB_SIGNING_KEY` is set, the stub
+generates an RSA key pair at boot and publishes the public half on `/jwks`
+(the `kid` is its JWK thumbprint). management-fe verifies with jose's remote
+JWKS set, which re-fetches on an unknown `kid`, so a restart is harmless for new logins; tokens
+issued before the restart no longer verify, which also means `/logout`
+rejects their `id_token_hint`. Set `STUB_SIGNING_KEY` to keep a key across
+restarts. Literal `\n` sequences in the value are turned into newlines.
+
+## Running as a single instance
+
+Browser sessions and authorization codes are held in memory, so the stub
+must run as **one instance**: a code issued by one instance cannot be
+redeemed at another. A restart signs every stub session out.
 
 ## Docker
 
 ### Development
 
 ```bash
-docker build --target development --tag epr-re-ex-entra-stub:dev .
-docker run -p 3010:3010 epr-re-ex-entra-stub:dev
+docker build --target development --tag epr-register-enrol-entra-stub:dev .
+docker run -p 3010:3010 epr-register-enrol-entra-stub:dev
 ```
 
 ### Production
 
 ```bash
-docker build --tag epr-re-ex-entra-stub .
-docker run -p 3010:3010 epr-re-ex-entra-stub
+docker build --tag epr-register-enrol-entra-stub .
+docker run -p 3010:3010 epr-register-enrol-entra-stub
 ```
 
 ### With Docker Compose
@@ -93,6 +146,11 @@ docker run -p 3010:3010 epr-re-ex-entra-stub
 ```bash
 docker compose up --build -d
 ```
+
+[compose.yml](compose.yml) sets `STUB_INTERNAL_URL` to the container's
+hostname on the `cdp-tenant` network, so a management-fe container on the
+same network can reach `/token` and `/jwks`, while browsers use
+`http://localhost:3010`.
 
 ## Licence
 
