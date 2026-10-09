@@ -27,6 +27,9 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
+      - name: Security audit
+        run: npm run security-audit
+
       - run: |
           npm ci
           npm run build:frontend
