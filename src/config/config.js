@@ -43,7 +43,7 @@ export const config = convict({
   serviceName: {
     doc: 'Applications Service Name',
     format: String,
-    default: 'epr-re-ex-entra-stub'
+    default: 'epr-register-enrol-entra-stub'
   },
   root: {
     doc: 'Project root',

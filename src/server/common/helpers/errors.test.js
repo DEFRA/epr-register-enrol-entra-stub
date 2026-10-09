@@ -23,7 +23,7 @@ describe('#errors', () => {
     })
 
     expect(result).toEqual(
-      expect.stringContaining('Page not found | epr-re-ex-entra-stub')
+      expect.stringContaining('Page not found | epr-register-enrol-entra-stub')
     )
     expect(statusCode).toBe(statusCodes.notFound)
   })

@@ -58,7 +58,7 @@ describe('context and cache', () => {
               href: 'http://localhost:3010/authorize'
             }
           ],
-          serviceName: 'epr-re-ex-entra-stub',
+          serviceName: 'epr-register-enrol-entra-stub',
           serviceUrl: '/'
         })
       })
@@ -145,7 +145,7 @@ describe('context and cache', () => {
               href: 'http://localhost:3010/authorize'
             }
           ],
-          serviceName: 'epr-re-ex-entra-stub',
+          serviceName: 'epr-register-enrol-entra-stub',
           serviceUrl: '/'
         })
       })
