@@ -1,21 +1,28 @@
 import path from 'path'
 import hapi from '@hapi/hapi'
-import Scooter from '@hapi/scooter'
-
-import { router } from './plugins/router.js'
-import { config } from '#/config/config.js'
-import { pulse } from './plugins/pulse.js'
-import { catchAll } from './common/helpers/errors.js'
-import { nunjucksConfig } from '#/config/nunjucks/nunjucks.js'
-import { requestTracing } from './plugins/request-tracing.js'
-import { requestLogger } from './plugins/request-logger.js'
-import { sessionCache } from './plugins/session-cache.js'
-import { getCacheEngine } from './common/helpers/session-cache/cache-engine.js'
+import inert from '@hapi/inert'
 import { secureContext } from '@defra/hapi-secure-context'
-import { contentSecurityPolicy } from './plugins/content-security-policy.js'
+
+import { config } from '../config/config.js'
+import { pulse } from './common/helpers/pulse.js'
 import { metrics } from '@defra/cdp-metrics'
+import { catchAll } from './common/helpers/errors.js'
+import { nunjucksConfig } from '../config/nunjucks/nunjucks.js'
+import { setupProxy } from './common/helpers/proxy/setup-proxy.js'
+import { requestTracing } from './common/helpers/request-tracing.js'
+import { requestLogger } from './common/helpers/logging/request-logger.js'
+
+import { health } from './routes/health.js'
+import { jwks } from './routes/jwks.js'
+import { token } from './routes/token.js'
+import { favicon } from './routes/favicon.js'
+import { files } from './routes/files.js'
+import { authorizeGet, authorizePost } from './routes/authorize.js'
+import { logoutGet } from './routes/logout.js'
+import { oidcConfigGet } from './routes/openid-configuration.js'
 
 export async function createServer() {
+  setupProxy()
   const server = hapi.server({
     host: config.get('host'),
     port: config.get('port'),
@@ -42,30 +49,34 @@ export async function createServer() {
     router: {
       stripTrailingSlash: true
     },
-    cache: [
-      {
-        name: config.get('session.cache.name'),
-        engine: getCacheEngine(config.get('session.cache.engine'))
-      }
-    ],
     state: {
       strictHeader: false
     }
   })
+
   await server.register([
     requestLogger,
     requestTracing,
     metrics,
     secureContext,
     pulse,
-    sessionCache,
     nunjucksConfig,
-    Scooter,
-    contentSecurityPolicy,
-    router // Register all the controllers/routes defined in src/server/router.js
+    inert
   ])
 
   server.ext('onPreResponse', catchAll)
+
+  server.route([
+    favicon,
+    files,
+    health,
+    jwks,
+    authorizeGet,
+    authorizePost,
+    token,
+    oidcConfigGet,
+    logoutGet
+  ])
 
   return server
 }

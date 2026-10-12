@@ -1,12 +1,18 @@
-.DS_Store
-.npm/
-.vscode
 .idea
-.public
+.vscode
+.git
+.DS_Store
 node_modules
-npm-debug.log
 coverage
+.npm/
+npm-debug.log
+.public
 .cache
 .envrc
 tsconfig.tsbuildinfo
+
+# Prototype files/folders
+.tmp/
 .env
+migrate.log
+usage-data-config.json

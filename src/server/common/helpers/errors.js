@@ -25,12 +25,17 @@ export function catchAll(request, h) {
   const statusCode = response.output.statusCode
   const errorMessage = statusCodeMessage(statusCode)
 
-  if (statusCode >= statusCodes.internalServerError) {
+  const isBadRequest = statusCode === statusCodes.badRequest
+  const isForbidden = statusCode === statusCodes.forbidden
+  const isUnauthorized = statusCode === statusCodes.unauthorized
+  const isInternalServerError = statusCode >= statusCodes.internalServerError
+
+  if (isBadRequest || isUnauthorized || isForbidden || isInternalServerError) {
     request.logger.error(response?.stack)
   }
 
   return h
-    .view('error/index', {
+    .view('views/error', {
       pageTitle: errorMessage,
       heading: statusCode,
       message: errorMessage

@@ -1,0 +1,61 @@
+{% extends 'layouts/page.njk' %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/password-input/macro.njk" import govukPasswordInput %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+
+
+{% block content %}
+  {% if validationErrors %}
+   {{ govukErrorSummary({
+      titleText: "There is a problem",
+      errorList: validationErrors
+   }) }}
+  {% endif %}
+
+  {{ appHeading({
+    text: heading,
+    caption: "Entra ID stub. Does not support real accounts."
+  }) }}
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      <div class="govuk-body" data-testid="app-page-body">
+       <form method="POST">
+         {{govukInput({
+           id: 'username',
+           name: 'username',
+           label: {
+             text: 'Email',
+             classes: 'govuk-label--s'
+           },
+           classes: 'govuk-input--width-20',
+           attributes: {
+             autocomplete: 'username'
+           }
+         }) }}
+         {{govukPasswordInput({
+           id: 'password',
+           name: 'password',
+           label: {
+             text: 'Password',
+             classes: 'govuk-label--s'
+           },
+           classes: 'govuk-input--width-20',
+           attributes: {
+             autocomplete: 'current-password'
+           }
+         }) }}
+         {{govukButton({
+           text: 'Login',
+           classes: 'govuk-button--start',
+           attributes: {
+             type: 'submit'
+           }
+         }) }}
+       </form>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}

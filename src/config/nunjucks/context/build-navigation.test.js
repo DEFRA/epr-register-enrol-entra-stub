@@ -7,32 +7,34 @@ function mockRequest(options) {
 describe('#buildNavigation', () => {
   test('Should provide expected navigation details', () => {
     expect(
-      buildNavigation(mockRequest({ path: '/non-existent-path' }))
+      buildNavigation(
+        mockRequest({
+          url: 'http://localhost:3010/authorize',
+          path: '/non-existent-path'
+        })
+      )
     ).toEqual([
       {
         current: false,
-        text: 'Home',
-        href: '/'
-      },
-      {
-        current: false,
-        text: 'About',
-        href: '/about'
+        text: 'Login',
+        href: 'http://localhost:3010/authorize'
       }
     ])
   })
 
   test('Should provide expected highlighted navigation details', () => {
-    expect(buildNavigation(mockRequest({ path: '/' }))).toEqual([
+    expect(
+      buildNavigation(
+        mockRequest({
+          url: 'http://localhost:3010/authorize',
+          path: '/authorize'
+        })
+      )
+    ).toEqual([
       {
         current: true,
-        text: 'Home',
-        href: '/'
-      },
-      {
-        current: false,
-        text: 'About',
-        href: '/about'
+        text: 'Login',
+        href: 'http://localhost:3010/authorize'
       }
     ])
   })

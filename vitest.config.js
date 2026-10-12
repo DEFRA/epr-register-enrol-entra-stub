@@ -8,17 +8,14 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reportsDirectory: './coverage',
-      reporter: ['text', 'lcov'],
+      reporter: ['text'],
       include: ['src/**/*.js'],
       exclude: [
         ...configDefaults.exclude,
         '.public',
         'coverage',
         'postcss.config.js',
-        'stylelint.config.js',
-        'vitest.config.js',
-        '.sonarlint',
-        'babel.config.cjs'
+        'stylelint.config.js'
       ]
     }
   }

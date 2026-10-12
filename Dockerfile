@@ -1,5 +1,5 @@
-ARG PARENT_VERSION=3.0.5-node24.14.1
-ARG PORT=3000
+ARG PARENT_VERSION=3.2.3-node24.21.0
+ARG PORT=3010
 ARG PORT_DEBUG=9229
 
 FROM defradigital/node-development:${PARENT_VERSION} AS development
@@ -14,7 +14,7 @@ ENV PORT=${PORT}
 EXPOSE ${PORT} ${PORT_DEBUG}
 
 COPY --chown=node:node --chmod=755 package*.json ./
-RUN npm install
+RUN npm install --ignore-scripts
 COPY --chown=node:node --chmod=755 . .
 RUN npm run build:frontend
 
