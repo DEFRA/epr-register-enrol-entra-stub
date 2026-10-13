@@ -42,9 +42,15 @@ The stub listens on <http://localhost:3010>.
 | ------------------------ | --------------------------------------------------------------------- |
 | Discovery document       | `${STUB_EXTERNAL_URL}/.well-known/openid-configuration`               |
 | Issuer                   | `STUB_EXTERNAL_URL`, e.g. `http://localhost:3010` (no trailing slash) |
-| `ENTRA_CLIENT_ID`        | `CM_CLIENT_ID` (default `epr-register-enrol-management-fe`)           |
-| `ENTRA_CLIENT_SECRET`    | `CM_CLIENT_SECRET` (default `case-management-stub-secret`)            |
+| `ENTRA_CLIENT_ID`        | `epr-register-enrol-management-fe`                                    |
+| `ENTRA_CLIENT_SECRET`    | `case-management-stub-secret`                                         |
 | `AUTH_CALLBACK_BASE_URL` | `CALLBACK_CM_URL` (default `http://localhost:3000`)                   |
+
+The client id and secret are hard-coded in
+[src/server/common/clients.js](src/server/common/clients.js), as in
+epr-re-ex-entra-stub: there is no env var or portal secret for them. Set
+management-fe's `ENTRA_CLIENT_ID` and `ENTRA_CLIENT_SECRET` (portal secrets)
+to the values above.
 
 The stub registers exactly one client, with exact-match URIs:
 
@@ -78,15 +84,13 @@ Errors from `/token` are RFC 6749 JSON (`{ "error": "invalid_grant", ... }`).
 
 ## Environment variables
 
-| Variable            | Default                            | Purpose                                                                                            |
-| ------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `STUB_EXTERNAL_URL` | `http://localhost:3010`            | Browser-facing base URL; also the issuer (`iss` and discovery `issuer`).                           |
-| `STUB_INTERNAL_URL` | `http://localhost:3010`            | Server-to-server base URL for `token_endpoint` and `jwks_uri`. Same as `STUB_EXTERNAL_URL` on CDP. |
-| `CM_CLIENT_ID`      | `epr-register-enrol-management-fe` | Case Management client id.                                                                         |
-| `CM_CLIENT_SECRET`  | `case-management-stub-secret`      | Case Management client secret (test value).                                                        |
-| `CALLBACK_CM_URL`   | `http://localhost:3000`            | Case Management base URL; the registered redirect and post-logout URIs hang off it.                |
-| `STUB_SIGNING_KEY`  | unset                              | Optional RSA PKCS#8 PEM to sign tokens with. Unset: a key pair is generated at boot.               |
-| `PORT`              | `3010`                             | Port to listen on.                                                                                 |
+| Variable            | Default                 | Purpose                                                                                            |
+| ------------------- | ----------------------- | -------------------------------------------------------------------------------------------------- |
+| `STUB_EXTERNAL_URL` | `http://localhost:3010` | Browser-facing base URL; also the issuer (`iss` and discovery `issuer`).                           |
+| `STUB_INTERNAL_URL` | `http://localhost:3010` | Server-to-server base URL for `token_endpoint` and `jwks_uri`. Same as `STUB_EXTERNAL_URL` on CDP. |
+| `CALLBACK_CM_URL`   | `http://localhost:3000` | Case Management base URL; the registered redirect and post-logout URIs hang off it.                |
+| `STUB_SIGNING_KEY`  | unset                   | Optional RSA PKCS#8 PEM to sign tokens with. Unset: a key pair is generated at boot.               |
+| `PORT`              | `3010`                  | Port to listen on.                                                                                 |
 
 The usual CDP template variables (`LOG_LEVEL`, `HTTP_PROXY`,
 `ENABLE_SECURE_CONTEXT`, ...) are documented in
