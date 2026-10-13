@@ -146,19 +146,6 @@ export const config = convict({
     }
   },
   caseManagement: {
-    clientId: {
-      doc: 'Client id of the EPR Register Case Management frontend (its ENTRA_CLIENT_ID).',
-      format: String,
-      default: 'epr-register-enrol-management-fe',
-      env: 'CM_CLIENT_ID'
-    },
-    clientSecret: {
-      doc: 'Client secret of the EPR Register Case Management frontend (its ENTRA_CLIENT_SECRET). The default is a non-sensitive test value.',
-      format: String,
-      default: 'case-management-stub-secret',
-      env: 'CM_CLIENT_SECRET',
-      sensitive: true
-    },
     callbackUrl: {
       doc: 'Base URL of the EPR Register Case Management frontend (its AUTH_CALLBACK_BASE_URL). The registered redirect and post-logout URIs are built from it.',
       format: 'url',
