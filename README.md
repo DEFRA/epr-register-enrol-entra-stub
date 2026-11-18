@@ -52,10 +52,26 @@ epr-re-ex-entra-stub: there is no env var or portal secret for them. Set
 management-fe's `ENTRA_CLIENT_ID` and `ENTRA_CLIENT_SECRET` (portal secrets)
 to the values above.
 
-The stub registers exactly one client, with exact-match URIs:
+The stub registers one client per relying party, with exact-match URIs:
 
-- redirect URI `${CALLBACK_CM_URL}/auth/regulator/callback`
-- post-logout redirect URI `${CALLBACK_CM_URL}/auth/logout`
+- management-fe: redirect URI `${CALLBACK_CM_URL}/auth/regulator/callback`,
+  post-logout redirect URI `${CALLBACK_CM_URL}/auth/logout`
+- Admin UI: redirect URI `${CALLBACK_ADMIN_URL}/auth/callback`,
+  post-logout redirect URI `${CALLBACK_ADMIN_URL}/auth/signed-out`
+
+## Pointing the Admin UI at the stub
+
+| epr-register-enrol-admin setting | Value                                                   |
+| -------------------------------- | ------------------------------------------------------- |
+| `AUTH_PROVIDER`                  | `defra-stub`                                            |
+| Discovery document               | `${STUB_EXTERNAL_URL}/.well-known/openid-configuration` |
+| `ENTRA_CLIENT_ID`                | `epr-register-enrol-admin`                              |
+| `ENTRA_CLIENT_SECRET`            | `admin-stub-secret`                                     |
+| `APP_BASE_URL`                   | `CALLBACK_ADMIN_URL` (default `http://localhost:3000`)  |
+
+Sign in as `support.readonly@test.gov.uk` to get the Admin UI's
+`Waste.SupportUser.ReadOnly` role, or `no.role@test.gov.uk` to see its
+access-denied page.
 
 ## Endpoints
 
@@ -84,13 +100,14 @@ Errors from `/token` are RFC 6749 JSON (`{ "error": "invalid_grant", ... }`).
 
 ## Environment variables
 
-| Variable            | Default                 | Purpose                                                                                            |
-| ------------------- | ----------------------- | -------------------------------------------------------------------------------------------------- |
-| `STUB_EXTERNAL_URL` | `http://localhost:3010` | Browser-facing base URL; also the issuer (`iss` and discovery `issuer`).                           |
-| `STUB_INTERNAL_URL` | `http://localhost:3010` | Server-to-server base URL for `token_endpoint` and `jwks_uri`. Same as `STUB_EXTERNAL_URL` on CDP. |
-| `CALLBACK_CM_URL`   | `http://localhost:3000` | Case Management base URL; the registered redirect and post-logout URIs hang off it.                |
-| `STUB_SIGNING_KEY`  | unset                   | Optional RSA PKCS#8 PEM to sign tokens with. Unset: a key pair is generated at boot.               |
-| `PORT`              | `3010`                  | Port to listen on.                                                                                 |
+| Variable             | Default                 | Purpose                                                                                            |
+| -------------------- | ----------------------- | -------------------------------------------------------------------------------------------------- |
+| `STUB_EXTERNAL_URL`  | `http://localhost:3010` | Browser-facing base URL; also the issuer (`iss` and discovery `issuer`).                           |
+| `STUB_INTERNAL_URL`  | `http://localhost:3010` | Server-to-server base URL for `token_endpoint` and `jwks_uri`. Same as `STUB_EXTERNAL_URL` on CDP. |
+| `CALLBACK_CM_URL`    | `http://localhost:3000` | Case Management base URL; the registered redirect and post-logout URIs hang off it.                |
+| `CALLBACK_ADMIN_URL` | `http://localhost:3000` | Admin UI base URL; its registered redirect and post-logout URIs hang off it.                       |
+| `STUB_SIGNING_KEY`   | unset                   | Optional RSA PKCS#8 PEM to sign tokens with. Unset: a key pair is generated at boot.               |
+| `PORT`               | `3010`                  | Port to listen on.                                                                                 |
 
 The usual CDP template variables (`LOG_LEVEL`, `HTTP_PROXY`,
 `ENABLE_SECURE_CONTEXT`, ...) are documented in
@@ -111,7 +128,7 @@ between runs.
 | `no.role@test.gov.uk`          | No Role User   | none                         | "You do not have access" |
 
 Users are defined in [src/server/common/users.js](src/server/common/users.js)
-and the client in [src/server/common/clients.js](src/server/common/clients.js).
+and the clients in [src/server/common/clients.js](src/server/common/clients.js).
 
 ## Signing keys
 

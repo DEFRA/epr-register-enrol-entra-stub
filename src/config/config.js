@@ -153,6 +153,14 @@ export const config = convict({
       env: 'CALLBACK_CM_URL'
     }
   },
+  admin: {
+    callbackUrl: {
+      doc: 'Base URL of the EPR Register Admin UI (epr-register-enrol-admin, its APP_BASE_URL). The registered redirect and post-logout URIs are built from it.',
+      format: 'url',
+      default: 'http://localhost:3000',
+      env: 'CALLBACK_ADMIN_URL'
+    }
+  },
   tracing: {
     header: {
       doc: 'Which header to track',
