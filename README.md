@@ -61,13 +61,13 @@ The stub registers one client per relying party, with exact-match URIs:
 
 ## Pointing the Admin UI at the stub
 
-| epr-register-enrol-admin setting | Value                                                   |
-| -------------------------------- | ------------------------------------------------------- |
-| `AUTH_PROVIDER`                  | `defra-stub`                                            |
-| Discovery document               | `${STUB_EXTERNAL_URL}/.well-known/openid-configuration` |
-| `ENTRA_CLIENT_ID`                | `epr-register-enrol-admin`                              |
-| `ENTRA_CLIENT_SECRET`            | `admin-stub-secret`                                     |
-| `APP_BASE_URL`                   | `CALLBACK_ADMIN_URL` (default `http://localhost:3000`)  |
+| epr-register-enrol-admin setting | Value                                                                                                                                                     |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTH_PROVIDER`                  | `defra-stub`                                                                                                                                              |
+| `ENTRA_STUB_URL`                 | `STUB_INTERNAL_URL` (the same as `STUB_EXTERNAL_URL` on CDP). The Admin UI fetches `${ENTRA_STUB_URL}/.well-known/openid-configuration` server to server. |
+| `ENTRA_CLIENT_ID`                | `epr-register-enrol-admin`                                                                                                                                |
+| `ENTRA_CLIENT_SECRET`            | `admin-stub-secret`                                                                                                                                       |
+| `APP_BASE_URL`                   | `CALLBACK_ADMIN_URL` (default `http://localhost:3000`)                                                                                                    |
 
 Sign in as `support.readonly@test.gov.uk` to get the Admin UI's
 `Waste.SupportUser.ReadOnly` role, or `no.role@test.gov.uk` to see its
