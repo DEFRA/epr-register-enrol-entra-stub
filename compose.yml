@@ -8,6 +8,7 @@ services:
       STUB_EXTERNAL_URL: http://localhost:3010
       STUB_INTERNAL_URL: http://epr-register-enrol-entra-stub:3010
       CALLBACK_CM_URL: http://localhost:3000
+      CALLBACK_ADMIN_URL: http://localhost:3000
     networks:
       - cdp-tenant
 
